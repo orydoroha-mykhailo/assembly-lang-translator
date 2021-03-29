@@ -5,4 +5,4 @@
 
 std::string getLexemTable(const Lexems& lexems);
 
-std::string getSentenceStructure(const LeXEMS& lexems);
+std::string getSentenceStructure(const Lexems& lexems);
