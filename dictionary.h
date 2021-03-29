@@ -67,6 +67,6 @@ inline bool isCharacterLexem(const char c) {
   return c == '*' || c == '+' || c == ',' || c == ':' || c == '[' || c == '[' || c == ']';
 }
 
-inline bool isTasmLexem(const std::string& lexem) {
+inline bool isAsmLexem(const std::string& lexem) {
   return asm_dict.count(lexem);
 }
