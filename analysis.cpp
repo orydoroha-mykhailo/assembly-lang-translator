@@ -1,5 +1,7 @@
 #include "analysis.h"
+using namespace std;
 #include <string>
+#include <sstream>
 #include <iomanip>
 
 bool isTextConstant(const std::string& str) {
@@ -16,7 +18,7 @@ std::string getLexemType(const Lexem& lexem) {
   } 
   else if (isdigit(lexem[0]) || lexem[0] == '-') {
     if (lexem.back() == 'H') {
-      return "hex constant";
+      return "hexadecimal constant";
     }
     else if (lexem.back() == 'B') {
       return "binary constant";
@@ -35,4 +37,85 @@ std::string getLexemType(const Lexem& lexem) {
   else {
     return "user identifier";
   }
+}
+
+std::string getLexemTable(const Lexems& lexems) {
+    std::stringstream result;
+  result << 
+    "-----------------------------------------------------------------------\n"
+    "|  №  |       Lexem       |   Length   |             Type             |\n"
+    "-----------------------------------------------------------------------\n";
+
+  size_t num = 1;
+  for (const auto& lexem : lexems) {
+    result << "| " << setw(3) << num++;
+    result << " | " << setw(17) << (isTextConstant(lexem) 
+                                   ? std::string{lexem.begin() + 1, lexem.end() - 1} 
+                                   : lexem);
+    result << " | " << setw(6) << lexem.size() << setw(7);
+    result << " | " << setw(28) << getLexemType(lexem) << " |\n";
+  }
+  result << "-----------------------------------------------------------------------";
+  return result.str();
+}
+
+std::string getSentenceStructure(const Lexems& lexems) {
+  stringstream result;
+  result << 
+    "-----------------------------------------------------------------------\n"
+    "|       |  Mnemocode  |   Operand 1   |   Operand 2   |   Operand 3   |\n"
+    "| Label |-------------|------------------------------------------------\n"
+    "|       |   №  |  Lex |    №  |  Lex  |    №  |  Lex  |    №  |  Lex  |\n"
+    "-----------------------------------------------------------------------\n";
+
+  bool lable = !isAsmLexem(lexems.front());
+  result << "| " << setw(3) << lable << "  ";
+  
+  if (lexems.size() == 2 && lexems.back() == ":") {
+    result << " | " << setw(4) << 0 << " | " << setw(4) << 0;
+    result << " | " << setw(5) << 0 << " | " << setw(4) << 0;
+    result << " | " << setw(5) << 0 << " | " << setw(4) << 0;
+    result << " | " << setw(5) << 0 << " | " << setw(4) << 0 << " | \n";
+  }
+  else {
+    bool colon = lexems.size() > 2 && lexems[1] == ":";
+    
+    result << " | " << setw(4) << 1 + lable + colon << " | " << setw(4) << 1;
+
+    size_t op1 = 0;
+    size_t op1_cnt = 0;
+    for (size_t i = 1 + lable + colon; i < lexems.size() && lexems[i] != ","; i++) {
+      op1 = 2 + lable + colon;
+      op1_cnt++;
+    }
+
+    result << " | " << setw(5) << op1 << " | " << setw(5) << op1_cnt;
+
+    if (op1 != 0 && op1 + op1_cnt - 1 < lexems.size()) {
+      size_t op2 = 0;
+      size_t op2_cnt = 0;
+      for (size_t i = op1 + op1_cnt; i < lexems.size() && lexems[i] != ","; i++) {
+        op2 = op1 + op1_cnt + 1;
+        op2_cnt++;
+      }
+
+      result << " | " << setw(5) << op2 << " | " << setw(5) << op2_cnt;
+
+      if (op2 != 0 && op2 + op2_cnt - 1 < lexems.size()) {
+        result << " | " << setw(5) << op2 + op2_cnt + 1 
+          << " | " << setw(5) << lexems.size() - 3 - op2_cnt - op1_cnt - lable - colon << " | \n";
+      }
+      else
+      result << " | " << setw(5) << 0 << " | " << setw(5) << 0 << " | \n";
+    }
+
+    else {
+      result << " | " << setw(5) << 0 << " | " << setw(5) << 0;
+      result << " | " << setw(5) << 0 << " | " << setw(5) << 0 << " | \n";
+    }
+  }
+
+  result << "-----------------------------------------------------------------------";
+
+  return result.str();
 }
