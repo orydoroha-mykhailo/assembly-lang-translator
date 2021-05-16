@@ -59,6 +59,7 @@ const std::map<std::string, std::string> asm_dict = {
   {"SEGMENT", "segment instruction"},
   {"ENDS", "segment instruction"},
   {"PROC", "procedure instruction"},
+  {"FAR", "procedure call"},
   {"ENDP", "procedure instruction"},
   {"END", "code statement"},
 };
