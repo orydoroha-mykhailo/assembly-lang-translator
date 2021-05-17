@@ -16,5 +16,5 @@ public:
 private:
   std::string file_name_;
 
-  std::vector<Lexems> all_lexems_;
+  std::vector<Expression> all_expressions_;
 };

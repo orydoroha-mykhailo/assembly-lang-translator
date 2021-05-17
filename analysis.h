@@ -3,6 +3,6 @@
 #include "lexer.h"
 #include "dictionary.h"
 
-std::string getLexemTable(const Lexems& lexems);
+std::string getExpressionTable(const Expression& lexems);
 
-std::string getSentenceStructure(const Lexems& lexems);
+std::string getSentenceStructure(const Expression& lexems);

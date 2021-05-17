@@ -128,3 +128,15 @@ inline bool isCharacterLexem(const char c) {
 inline bool isAsmLexem(const std::string& lexem) {
   return asm_dict.count(lexem);
 }
+
+inline LEXEM_TYPE getAsmLexemType(const std::string& lexem) {
+  try
+  {
+    return asm_dict.at(lexem);
+  }
+  catch(const std::exception& e)
+  {
+    return LEXEM_TYPE::UNDEFINED;
+  }
+  
+}

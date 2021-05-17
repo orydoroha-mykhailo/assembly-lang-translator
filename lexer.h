@@ -6,6 +6,6 @@
 #include <vector>
 
 typedef std::string Lexem;
-typedef std::vector<std::string> Lexems;
+typedef std::vector<std::string> Expression;
 
-Lexems parseIntoLexems(const std::string& line);
+Expression parseLineToExpression(const std::string& line);

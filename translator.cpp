@@ -19,8 +19,8 @@ string covertNameToLstExt(string asm_file_name) {
   return asm_file_name;
 }
 
-ostream& operator<<(ostream& ostr, const Lexems& lexems) {
-  for (const auto& lexem : lexems) 
+ostream& operator<<(ostream& ostr, const Expression& expression) {
+  for (const auto& lexem : expression) 
     ostr << lexem << " ";
   return ostr;
 }
@@ -30,8 +30,8 @@ Translator::Translator(const std::string& file_name) {
   ifstream asm_file(file_name);
 
   for (string line; getline(asm_file, line); ) {
-    if (auto lexems = parseIntoLexems(ToUpper(line)); !lexems.empty()) {
-      all_lexems_.push_back(lexems);
+    if (auto expression = parseLineToExpression(ToUpper(line)); !expression.empty()) {
+      all_expressions_.push_back(expression);
     }
   }
 }
@@ -39,22 +39,26 @@ Translator::Translator(const std::string& file_name) {
 void Translator::createListing() {
   ofstream listing_file(covertNameToLstExt(file_name_));
 
-  for (const auto& lexems : all_lexems_) {
-    listing_file << lexems << endl; 
-    listing_file << getLexemTable(lexems) << endl;
-    listing_file << getSentenceStructure(lexems) << endl << endl;
+  for (const auto& expression: all_expressions_) {
+    listing_file << expression << endl; 
+    listing_file << getExpressionTable(expression) << endl;
+    listing_file << getSentenceStructure(expression) << endl << endl;
   }
 }
 
 void Translator::outAllLexems() {
   ofstream listing_file(covertNameToLstExt(file_name_), ios::app);
 
-  set<Lexem> all_lexems;
+  set<Lexem> all_expressions;
 
-  for (const auto& lexems : all_lexems_) {
-    all_lexems.insert(lexems.begin(), lexems.end());
+  for (const auto& expression: all_expressions_) {
+    all_expressions.insert(expression.begin(), expression.end());
   }
 
-  listing_file << getLexemTable({all_lexems.begin(), all_lexems.end()}) << "\n";
+  listing_file << getExpressionTable({all_expressions.begin(), all_expressions.end()}) << "\n";
+
+}
+
+void absoluteExpressionHandler(const Expression& expression){
 
 }

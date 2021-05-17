@@ -2,8 +2,8 @@
 
 using namespace std;
 
-Lexems parseIntoLexems(const std::string& s) {
-  Lexems result;
+Expression parseLineToExpression(const std::string& s) {
+  Expression result;
   
   Lexem current_lexem;
   for (size_t i = 0; i < s.size(); i++) {

@@ -15,7 +15,7 @@ run: main.o lexer.o translator.o analysis.o
 main.o: main.cpp translator.h analysis.h lexer.h dictionary.h
 	g++ -std=gnu++17 -c main.cpp
 
-lexer.o: lexer.cpp lexer.h
+lexer.o: lexer.cpp lexer.h dictionary.h
 	g++ -std=gnu++17 -c lexer.cpp
 
 translator.o: translator.cpp translator.h analysis.h lexer.h dictionary.h

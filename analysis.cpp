@@ -13,15 +13,7 @@ bool isTextConstant(const std::string& str) {
 }
 
 std::string lexemTypeToStr(const LEXEM_TYPE& lt) {
-  try
-  {
-    return lex_t_to_str.at(lt);
-  }
-  catch(const std::exception& e)
-  {
-    perror("Error: lexemTypeToStr no such element in map!\n");
-  }
-  
+  return lex_t_to_str.at(lt);
 }
 
 LEXEM_TYPE getLexemType(const Lexem& lexem) {
@@ -59,7 +51,7 @@ LEXEM_TYPE getLexemType(const Lexem& lexem) {
   }
 }
 
-std::string getLexemTable(const Lexems& lexems) {
+std::string getExpressionTable(const Expression& expression) {
     std::stringstream result;
   result << 
     "-----------------------------------------------------------------------\n"
@@ -67,7 +59,7 @@ std::string getLexemTable(const Lexems& lexems) {
     "-----------------------------------------------------------------------\n";
 
   size_t num = 1;
-  for (const auto& lexem : lexems) {
+  for (const auto& lexem : expression) {
     result << "| " << setw(3) << num++;
     result << " | " << setw(17) << (isTextConstant(lexem) 
                                    ? std::string{lexem.begin() + 1, lexem.end() - 1} 
@@ -79,7 +71,7 @@ std::string getLexemTable(const Lexems& lexems) {
   return result.str();
 }
 
-std::string getSentenceStructure(const Lexems& lexems) {
+std::string getSentenceStructure(const Expression& expression) {
   stringstream result;
   result << 
     "-----------------------------------------------------------------------\n"
@@ -88,42 +80,42 @@ std::string getSentenceStructure(const Lexems& lexems) {
     "|       |   №  |  Lex |    №  |  Lex  |    №  |  Lex  |    №  |  Lex  |\n"
     "-----------------------------------------------------------------------\n";
 
-  bool lable = !isAsmLexem(lexems.front());
+  bool lable = !isAsmLexem(expression.front());
   result << "| " << setw(3) << lable << "  ";
   
-  if (lexems.size() == 2 && lexems.back() == ":") {
+  if (expression.size() == 2 && expression.back() == ":") {
     result << " | " << setw(4) << 0 << " | " << setw(4) << 0;
     result << " | " << setw(5) << 0 << " | " << setw(4) << 0;
     result << " | " << setw(5) << 0 << " | " << setw(4) << 0;
     result << " | " << setw(5) << 0 << " | " << setw(4) << 0 << " | \n";
   }
   else {
-    bool colon = lexems.size() > 2 && lexems[1] == ":";
+    bool colon = expression.size() > 2 && expression[1] == ":";
     
     result << " | " << setw(4) << 1 + lable + colon << " | " << setw(4) << 1;
 
     size_t op1 = 0;
     size_t op1_cnt = 0;
-    for (size_t i = 1 + lable + colon; i < lexems.size() && lexems[i] != ","; i++) {
+    for (size_t i = 1 + lable + colon; i < expression.size() && expression[i] != ","; i++) {
       op1 = 2 + lable + colon;
       op1_cnt++;
     }
 
     result << " | " << setw(5) << op1 << " | " << setw(5) << op1_cnt;
 
-    if (op1 != 0 && op1 + op1_cnt - 1 < lexems.size()) {
+    if (op1 != 0 && op1 + op1_cnt - 1 < expression.size()) {
       size_t op2 = 0;
       size_t op2_cnt = 0;
-      for (size_t i = op1 + op1_cnt; i < lexems.size() && lexems[i] != ","; i++) {
+      for (size_t i = op1 + op1_cnt; i < expression.size() && expression[i] != ","; i++) {
         op2 = op1 + op1_cnt + 1;
         op2_cnt++;
       }
 
       result << " | " << setw(5) << op2 << " | " << setw(5) << op2_cnt;
 
-      if (op2 != 0 && op2 + op2_cnt - 1 < lexems.size()) {
+      if (op2 != 0 && op2 + op2_cnt - 1 < expression.size()) {
         result << " | " << setw(5) << op2 + op2_cnt + 1 
-          << " | " << setw(5) << lexems.size() - 3 - op2_cnt - op1_cnt - lable - colon << " | \n";
+          << " | " << setw(5) << expression.size() - 3 - op2_cnt - op1_cnt - lable - colon << " | \n";
       }
       else
       result << " | " << setw(5) << 0 << " | " << setw(5) << 0 << " | \n";
