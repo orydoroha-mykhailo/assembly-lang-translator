@@ -2,6 +2,10 @@
 
 build: run
 
+rebuild:
+	make clean
+	make build
+
 clean:
 	rm -f *.o run
 

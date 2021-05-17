@@ -12,30 +12,50 @@ bool isTextConstant(const std::string& str) {
   return false;
 }
 
-std::string getLexemType(const Lexem& lexem) {
+std::string lexemTypeToStr(const LEXEM_TYPE& lt) {
+  try
+  {
+    return lex_t_to_str.at(lt);
+  }
+  catch(const std::exception& e)
+  {
+    perror("Error: lexemTypeToStr no such element in map!\n");
+  }
+  
+}
+
+LEXEM_TYPE getLexemType(const Lexem& lexem) {
   if (isTextConstant(lexem)) {
-    return "text constant";
+    return LEXEM_TYPE::TEXT_CONST;
   } 
   else if (isdigit(lexem[0]) || lexem[0] == '-') {
     if (lexem.back() == 'H') {
-      return "hexadecimal constant";
+      return LEXEM_TYPE::HEX_CONST;
     }
     else if (lexem.back() == 'B') {
-      return "binary constant";
+      return LEXEM_TYPE::BIN_CONST;
     }
     else if (isdigit(lexem.back()) 
         || lexem.back() == 'D') {
-      return "decimal constant";
+      return LEXEM_TYPE::DEC_CONST;
     }
     else {
       throw std::runtime_error(lexem);
     }
   }
   else if (isAsmLexem(lexem)) {
-    return asm_dict.at(lexem);
+    try
+    {
+      return asm_dict.at(lexem);
+    }
+    catch(const std::exception& e)
+    {
+      return LEXEM_TYPE::U_ID;
+    }
+    
   }
   else {
-    return "user identifier";
+    return LEXEM_TYPE::U_ID;
   }
 }
 
@@ -53,7 +73,7 @@ std::string getLexemTable(const Lexems& lexems) {
                                    ? std::string{lexem.begin() + 1, lexem.end() - 1} 
                                    : lexem);
     result << " | " << setw(6) << lexem.size() << setw(7);
-    result << " | " << setw(28) << getLexemType(lexem) << " |\n";
+    result << " | " << setw(28) << lexemTypeToStr(getLexemType(lexem)) << " |\n";
   }
   result << "-----------------------------------------------------------------------";
   return result.str();

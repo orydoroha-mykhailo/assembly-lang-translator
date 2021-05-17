@@ -40,9 +40,9 @@ void Translator::createListing() {
   ofstream listing_file(covertNameToLstExt(file_name_));
 
   for (const auto& lexems : all_lexems_) {
-    listing_file << lexems << "\n";
-    listing_file << getLexemTable(lexems) << "\n";
-    listing_file << getSentenceStructure(lexems) << "\n\n";
+    listing_file << lexems << endl; 
+    listing_file << getLexemTable(lexems) << endl;
+    listing_file << getSentenceStructure(lexems) << endl << endl;
   }
 }
 
