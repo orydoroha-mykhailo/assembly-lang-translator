@@ -8,7 +8,11 @@ Expression parseLineToExpression(const std::string& s) {
   Lexem current_lexem;
   for (size_t i = 0; i < s.size(); i++) {
     if (s[i] == ';') 
+    {
+      result.push_back(";");
+      result.push_back({s.begin() + 1, s.end() - 1});
       break;
+    }
 
     if (s[i] == ' ' || s[i] == '\t' || s[i] == '\r' || isCharacterLexem(s[i])) {
       if (!current_lexem.empty()) {

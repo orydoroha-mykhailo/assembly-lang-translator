@@ -13,7 +13,7 @@ bool isTextConstant(const std::string& str) {
 }
 
 std::string lexemTypeToStr(const LEXEM_TYPE& lt) {
-  return lex_t_to_str.at(lt);
+  return Lexem_type_to_string.at(lt);
 }
 
 LEXEM_TYPE getLexemType(const Lexem& lexem) {
@@ -38,7 +38,7 @@ LEXEM_TYPE getLexemType(const Lexem& lexem) {
   else if (isAsmLexem(lexem)) {
     try
     {
-      return asm_dict.at(lexem);
+      return asm_dict_to_lexem_type.at(asm_dict.at(lexem));
     }
     catch(const std::exception& e)
     {

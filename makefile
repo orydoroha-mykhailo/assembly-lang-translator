@@ -10,7 +10,7 @@ clean:
 	rm -f *.o run
 
 run: main.o lexer.o translator.o analysis.o
-	g++ -std=gnu++17 main.o lexer.o translator.o analysis.o -o run
+	g++ -std=gnu++17 main.o lexer.o translator.o analysis.o -g -o run
 
 main.o: main.cpp translator.h analysis.h lexer.h dictionary.h
 	g++ -std=gnu++17 -c main.cpp
