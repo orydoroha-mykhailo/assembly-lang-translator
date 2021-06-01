@@ -6,6 +6,7 @@ using namespace std;
 #include <iomanip>
 #include <string>
 #include <set>
+int OR_validator(const Expression &expression, size_t& offset);
 int MOV_validator(const Expression& expression, size_t& offset);
 bool isAsmReg(const Lexem& lexem);
 bool isReg_32(const Lexem& lexem);
@@ -95,20 +96,27 @@ void Translator::createListing() {
 int Translator::validate_expression(const Expression& expression, size_t& offset) {
   if(getAsmLexemType(expression[0]) == LEXEM_TYPE::MACHINE_INSTRUCT) {
       /* Review all machine instructions */
-    if(asm_dict.at(expression.front())
+    if(getAsmDictType(expression.front())
      == ASM_DICT::MOV) {
-       try
-       {
-        if(!MOV_validator(expression, offset)){
+      try {
+        if(!MOV_validator(expression, offset)) {
           return 0;
         }
-       }
-       catch(const std::exception& e)
-       {
-         return -1;
-       }
-       return -1;
-       
+      }
+      catch(const std::exception& e) {
+      }
+     }
+    if(getAsmDictType(expression.front())
+     == ASM_DICT::OR) {
+      try {
+        if(!OR_validator(expression, offset)) {
+          return 0;
+        }
+      }
+      catch(const std::exception& e) {
+      }
+      
+
      }
   }
   else if(getAsmLexemType(expression.back()) == LEXEM_TYPE::SEGMENT_INSTRUCTION) {
@@ -127,6 +135,7 @@ int Translator::validate_expression(const Expression& expression, size_t& offset
     /* Commment */
       return 0;
   }
+  return -1;
 
 }
 
@@ -145,6 +154,7 @@ void Translator::release_expression(const Expression& expression,
 }
 
 // seems like done!
+// returns 0 if mov expression is valid
 int MOV_validator(const Expression& expression, size_t& offset) {
   if(expression.size() > 1){
     if(expression[0] == "MOV"){
@@ -240,21 +250,40 @@ int MOV_validator(const Expression& expression, size_t& offset) {
   return -1;
 }
 
-int mem_validator(const Expression& expression, const size_t& bracket_start_id, size_t& end_id) {
-  try {
-    size_t i = bracket_start_id;
-    if(expression.at(i) == "[") {
-      if(isReg_32(expression.at(++i))) {
-        if(expression.at(++i) == "+") {
-          if(isReg_32(expression.at(++i))) {
-            if(expression.at(++i) == "*") {
-              if(isNumber(expression.at(++i))){
-                if(expression.at(++i) == "+"){
-                  if(isNumber(expression.at(++i))){
-                    if(expression.at(++i) == "]"){
-                      end_id = i + 1;
-                      return 0;
-                    }
+int OR_validator(const Expression &expression, size_t& offset) {
+  if(getAsmDictType(expression.at(0)) == ASM_DICT::OR) {
+    if(getAsmDictType(expression.at(2)) == ASM_DICT::COM) {
+      if(isAsmReg(expression.at(1)) && isAsmReg(expression.at(3))) {
+        LEXEM_TYPE reg_1_size = getAsmLexemType(expression.at(1));
+        LEXEM_TYPE reg_2_size = getAsmLexemType(expression.at(3));
+        if(reg_1_size == reg_2_size) {
+          if(expression.size() == 4) {
+            return 0;
+          }
+          else if(getAsmDictType(expression.at(4)) == ASM_DICT::SEMICOL){
+            return 0;
+          }
+        }
+      } 
+    }
+  }
+  return -1;
+}
+
+int mem_validator(const Expression& expression, const size_t& bracket_start_id,
+ size_t& end_id) {
+  size_t i = bracket_start_id;
+  if(expression.at(i) == "[") {
+    if(isReg_32(expression.at(++i))) {
+      if(expression.at(++i) == "+") {
+        if(isReg_32(expression.at(++i))) {
+          if(expression.at(++i) == "*") {
+            if(isNumber(expression.at(++i))){
+              if(expression.at(++i) == "+"){
+                if(isNumber(expression.at(++i))){
+                  if(expression.at(++i) == "]"){
+                    end_id = i + 1;
+                    return 0;
                   }
                 }
               }
@@ -263,20 +292,20 @@ int mem_validator(const Expression& expression, const size_t& bracket_start_id, 
         }
       }
     }
-    else if(getAsmLexemType(expression.at(i)) == LEXEM_TYPE::REGISTER_SEGMENT) {
-      if(expression.at(++i) == ":") {
-        if(expression.at(++i) == "[") {
-          if(isReg_32(expression.at(++i))) {
-            if(expression.at(++i) == "+") {
-              if(isReg_32(expression.at(++i))) {
-                if(expression.at(++i) == "*") {
-                  if(isNumber(expression.at(++i))){
-                    if(expression.at(++i) == "+"){
-                      if(isNumber(expression.at(++i))){
-                        if(expression.at(++i) == "]"){
-                          end_id = i + 1;
-                          return 0;
-                        }
+  }
+  else if(getAsmLexemType(expression.at(i)) == LEXEM_TYPE::REGISTER_SEGMENT) {
+    if(expression.at(++i) == ":") {
+      if(expression.at(++i) == "[") {
+        if(isReg_32(expression.at(++i))) {
+          if(expression.at(++i) == "+") {
+            if(isReg_32(expression.at(++i))) {
+              if(expression.at(++i) == "*") {
+                if(isNumber(expression.at(++i))){
+                  if(expression.at(++i) == "+"){
+                    if(isNumber(expression.at(++i))){
+                      if(expression.at(++i) == "]"){
+                        end_id = i + 1;
+                        return 0;
                       }
                     }
                   }
@@ -287,59 +316,40 @@ int mem_validator(const Expression& expression, const size_t& bracket_start_id, 
         }
       }
     }
-    return -1;
   }
-  catch(const std::exception& e) {
-    return -1;
-  }
+  return -1;
 }
 
 bool isReg_32(const Lexem& lexem) {
   return getAsmLexemType(lexem) == LEXEM_TYPE::REGISTER_32 ? true : false;
 }
 
+bool isReg_16(const Lexem& lexem) {
+  return getAsmLexemType(lexem) == LEXEM_TYPE::REGISTER_16 ? true : false;
+}
+
+bool isReg_8(const Lexem& lexem) {
+  return getAsmLexemType(lexem) == LEXEM_TYPE::REGISTER_8 ? true : false;
+}
+
 bool isAsmReg(const Lexem& lexem) {
-  try
-  {
-    LEXEM_TYPE lex = getAsmLexemType(lexem);
-    if(lex == LEXEM_TYPE::REGISTER_32 || lex == LEXEM_TYPE::REGISTER_16
-    || lex == LEXEM_TYPE::REGISTER_8 || lex == LEXEM_TYPE::REGISTER_SEGMENT){
-      return true;
-    }
-    return false;
+  LEXEM_TYPE lex = getAsmLexemType(lexem);
+  if(lex == LEXEM_TYPE::REGISTER_32 || lex == LEXEM_TYPE::REGISTER_16
+  || lex == LEXEM_TYPE::REGISTER_8 || lex == LEXEM_TYPE::REGISTER_SEGMENT){
+    return true;
   }
-  catch(const std::exception& e)
-  {
-    return false;
-  }
-  
+  return false;
 }
 
 bool isNumber(const Lexem& lexem) {
-  try
-  {
-    for (char const &c : lexem) {
-      if (std::isdigit(c) == 0) return false;
-    }
-    return true;
+  for (char const &c : lexem) {
+    if (std::isdigit(c) == 0) return false;
   }
-  catch(const std::exception& e)
-  {
-    return false;
-  }
-  
+  return true;
 }
 
 bool isIMM(const Lexem& lexem) {
-  try
-  {
-    if(isNumber(lexem))
-      return true;
-    else false;
-  }
-  catch(const std::exception& e)
-  {
-    return false;
-  }
-  
+  if(isNumber(lexem))
+    return true;
+  else false;
 }

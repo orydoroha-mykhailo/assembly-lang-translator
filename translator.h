@@ -26,7 +26,7 @@ private:
     std::set<Variable> vars;
   };
   // class Register{
-    // std::string reg_name;
+    // ASM_DICT reg_name;
     // const LEXEM_TYPE reg_size;
   // };
   class Label {

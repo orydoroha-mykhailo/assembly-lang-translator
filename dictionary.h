@@ -11,6 +11,7 @@ enum class ASM_DICT{
   BR_O,
   BR_C,
   COL,
+  SEMICOL,
   BR_SQ_O,
   BR_SQ_C,
   RET,
@@ -64,7 +65,7 @@ enum class ASM_DICT{
   FAR,
   ENDP,
   END,
-
+  UNDEFINED
 };
 
 enum class LEXEM_TYPE{
@@ -76,9 +77,9 @@ enum class LEXEM_TYPE{
   OP,
   MACHINE_INSTRUCT,
   OPERATOR_TYPE,
-  DATA_TYPE_1,
-  DATA_TYPE_2,
-  DATA_TYPE_4,
+  DATA_TYPE_8,
+  DATA_TYPE_16,
+  DATA_TYPE_32,
   REGISTER_SEGMENT, 
   REGISTER_32,
   REGISTER_16,
@@ -99,9 +100,9 @@ const std::unordered_map<LEXEM_TYPE, std::string> Lexem_type_to_string = {
   {LEXEM_TYPE::OP, "Op code"},
   {LEXEM_TYPE::MACHINE_INSTRUCT, "Machine instruction"},
   {LEXEM_TYPE::OPERATOR_TYPE, "Op type"},
-  {LEXEM_TYPE::DATA_TYPE_1, "8-bit data type"},
-  {LEXEM_TYPE::DATA_TYPE_2, "16-bit data type"},
-  {LEXEM_TYPE::DATA_TYPE_4, "32-bit data type"},
+  {LEXEM_TYPE::DATA_TYPE_8, "8-bit data type"},
+  {LEXEM_TYPE::DATA_TYPE_16, "16-bit data type"},
+  {LEXEM_TYPE::DATA_TYPE_32, "32-bit data type"},
   {LEXEM_TYPE::REGISTER_SEGMENT,  "Segment register"},
   {LEXEM_TYPE::REGISTER_32, "32-bit register"},
   {LEXEM_TYPE::REGISTER_16, "16-bit register"},
@@ -120,6 +121,7 @@ const std::unordered_map<ASM_DICT, LEXEM_TYPE> asm_dict_to_lexem_type = {
   {ASM_DICT::BR_O, LEXEM_TYPE::OP},
   {ASM_DICT::BR_C, LEXEM_TYPE::OP},
   {ASM_DICT::COL, LEXEM_TYPE::CHARACTER},
+  {ASM_DICT::SEMICOL, LEXEM_TYPE::CHARACTER},
   {ASM_DICT::BR_SQ_O, LEXEM_TYPE::CHARACTER},
   {ASM_DICT::BR_SQ_C, LEXEM_TYPE::CHARACTER},
   {ASM_DICT::RET, LEXEM_TYPE::MACHINE_INSTRUCT},
@@ -130,12 +132,12 @@ const std::unordered_map<ASM_DICT, LEXEM_TYPE> asm_dict_to_lexem_type = {
   {ASM_DICT::MOV, LEXEM_TYPE::MACHINE_INSTRUCT},
   {ASM_DICT::CALL, LEXEM_TYPE::MACHINE_INSTRUCT},
   {ASM_DICT::JZ, LEXEM_TYPE::MACHINE_INSTRUCT},
-  {ASM_DICT::BYTE, LEXEM_TYPE::DATA_TYPE_1},
-  {ASM_DICT::DB, LEXEM_TYPE::DATA_TYPE_1},
-  {ASM_DICT::WORD, LEXEM_TYPE::DATA_TYPE_2},
-  {ASM_DICT::DW, LEXEM_TYPE::DATA_TYPE_2},
-  {ASM_DICT::DWORD, LEXEM_TYPE::DATA_TYPE_4},
-  {ASM_DICT::DD, LEXEM_TYPE::DATA_TYPE_4},
+  {ASM_DICT::BYTE, LEXEM_TYPE::DATA_TYPE_8},
+  {ASM_DICT::DB, LEXEM_TYPE::DATA_TYPE_8},
+  {ASM_DICT::WORD, LEXEM_TYPE::DATA_TYPE_16},
+  {ASM_DICT::DW, LEXEM_TYPE::DATA_TYPE_16},
+  {ASM_DICT::DWORD, LEXEM_TYPE::DATA_TYPE_32},
+  {ASM_DICT::DD, LEXEM_TYPE::DATA_TYPE_32},
   {ASM_DICT::CS, LEXEM_TYPE::REGISTER_SEGMENT},
   {ASM_DICT::DS, LEXEM_TYPE::REGISTER_SEGMENT},
   {ASM_DICT::SS, LEXEM_TYPE::REGISTER_SEGMENT},
@@ -184,6 +186,7 @@ const std::unordered_map<std::string, ASM_DICT> asm_dict = {
   {"(", ASM_DICT::BR_O},
   {")", ASM_DICT::BR_C},
   {":", ASM_DICT::COL},
+  {";", ASM_DICT::SEMICOL},
   {"[", ASM_DICT::BR_SQ_O},
   {"]", ASM_DICT::BR_SQ_C},
   {"RET", ASM_DICT::RET},
@@ -256,14 +259,25 @@ inline bool isAsmLexem(const std::string& lexem) {
   return asm_dict.count(lexem);
 }
 
+inline ASM_DICT getAsmDictType(const std::string& lexem) {
+  try
+  {
+    return asm_dict.at(lexem);
+  }
+  catch(const std::exception& e)
+  {
+    return ASM_DICT::UNDEFINED;
+  }
+  
+}
+
 inline LEXEM_TYPE getAsmLexemType(const std::string& lexem) {
   try
   {
-    return asm_dict_to_lexem_type.at(asm_dict.at(lexem));
+    return asm_dict_to_lexem_type.at(getAsmDictType(lexem));
   }
   catch(const std::exception& e)
   {
     return LEXEM_TYPE::UNDEFINED;
   }
-  
 }
