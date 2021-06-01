@@ -115,9 +115,16 @@ int Translator::validate_expression(const Expression& expression, size_t& offset
       }
       catch(const std::exception& e) {
       }
-      
-
-     }
+    }
+    if(getAsmDictType(expression.front())
+     == ASM_DICT::RET) {
+       if(expression.size() == 1){
+         return 0;
+       }
+       else if(getAsmDictType(expression.at(1)) == ASM_DICT::SEMICOL){
+         return 0;
+       }
+    }
   }
   else if(getAsmLexemType(expression.back()) == LEXEM_TYPE::SEGMENT_INSTRUCTION) {
     if(expression.back() == "SEGMENT") {
