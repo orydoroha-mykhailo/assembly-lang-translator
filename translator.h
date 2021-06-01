@@ -13,7 +13,7 @@ public:
   void createListing();
 
   void outAllLexems();
-  
+
 private:
   class Label {
      public:
@@ -63,6 +63,7 @@ private:
   // };
   int validate_expression(const Expression& expression, size_t& offset);
   void release_expression(const Expression& expression, const size_t& line_num, const size_t& offset) const;
+  void error_msg(const std::string msg, const size_t& line) const;
   size_t calculate_offset(const Expression& expression) const;
   std::string file_name_;
   std::set<Segment> Segments;

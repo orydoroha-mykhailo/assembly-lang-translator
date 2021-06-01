@@ -90,7 +90,7 @@ std::string getSentenceStructure(const Expression& expression) {
     result << " | " << setw(5) << 0 << " | " << setw(4) << 0 << " | \n";
   }
   else {
-    bool colon = expression.size() > 2 && expression[1] == ":";
+    bool colon = expression.size() > 2 && expression.at(1) == ":";
     
     result << " | " << setw(4) << 1 + lable + colon << " | " << setw(4) << 1;
 

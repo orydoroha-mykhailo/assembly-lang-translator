@@ -87,14 +87,16 @@ void Translator::createListing() {
   size_t current_offset;
   for (const auto& line: all_expressions_) {
     current_offset = 0;
+    line_num++;
     if(!validate_expression(line, current_offset)) {
       offset += current_offset;
-      line_num++;
       release_expression(line, line_num, offset);
     }
-    //else {
-      // throw exception
-    //}
+    else {
+      release_expression(line, line_num, offset);
+      error_msg({"Analysis interrupt!"}, line_num);
+      //return;
+    }
   }
 }
 
@@ -102,7 +104,7 @@ void Translator::createListing() {
 // returns 0 if creation succsessful
 // otherwise returns error code
 int Translator::validate_expression(const Expression& expression, size_t& offset) {
-  if(getAsmLexemType(expression[0]) == LEXEM_TYPE::MACHINE_INSTRUCT) {
+  if(getAsmLexemType(expression.at(0)) == LEXEM_TYPE::MACHINE_INSTRUCT) {
       /* Review all machine instructions */
     if(getAsmDictType(expression.front())
      == ASM_DICT::MOV) {
@@ -226,29 +228,40 @@ int Translator::validate_expression(const Expression& expression, size_t& offset
 void Translator::release_expression(const Expression& expression,
  const size_t& line_num, const size_t& offset) const {
   ofstream listing_file(covertNameToLstExt(file_name_), ios_base::app);
+  stringstream ss;
+  ss << std::hex << offset;
+  string offset_ = ToUpper(ss.str());
 
   listing_file << setfill(' ');
   listing_file << setw(6) << line_num << "\t" << setw(4);
   listing_file << setfill('0');
-  listing_file << setw(4) << std::hex << offset;
+  listing_file << setw(4) << offset_;
   listing_file << setfill(' ');
   listing_file << setw(20)  << ""/* flags */;
   listing_file << expression << endl;
   listing_file.close();
 }
 
+void Translator::error_msg(const std::string msg, const size_t& line) const {
+  ofstream listing_file(covertNameToLstExt(file_name_), ios_base::app);
+  listing_file << "*Error* " << file_name_ << "(" << line<< ") " << msg << endl;
+  listing_file.close();
+
+}
+
 // seems like done!
 // returns 0 if mov expression is valid
 int MOV_validator(const Expression& expression, size_t& offset) {
   if(expression.size() > 1){
-    if(expression[0] == "MOV"){
+    if(expression.at(0) == "MOV"){
       // MOV mem, imm
       size_t id;
       if(!mem_validator(expression, 1, id)) {
-        if(expression[id++] == ",") {
+        if(expression.at(id++) == ",") {
           // imm check
-          if(isIMM(expression[id++])){
-            if(expression[id++] == ";") {
+          if(isIMM(expression.at(id++))){
+            offset += 7;
+            if(expression.at(id) == ";") {
               return 0;
             }
             else if(expression.size() == id){
@@ -257,45 +270,48 @@ int MOV_validator(const Expression& expression, size_t& offset) {
           }
         }
       }
-      else if(expression[1] == "DWORD" && expression[2] == "PTR") {
+      else if(expression.at(1) == "DWORD" && expression.at(2) == "PTR") {
+        offset += 10;
         if(!mem_validator(expression, 3, id)) {
-          if(expression[id++] == ",") {
+          if(expression.at(id++) == ",") {
             // imm check
-            if(isIMM(expression[id++])){
-              if(expression[id++] == ";") {
+            if(isIMM(expression.at(id++))){
+              if(expression.size() == id) {
                 return 0;
               }
-              else if(expression.size() == id){
+              else if(expression.at(id) == ";"){
                 return 0;
               }
             }
           }
         }
       }
-      else if(expression[1] == "WORD" && expression[2] == "PTR") {
+      else if(expression.at(1) == "WORD" && expression.at(2) == "PTR") {
+        offset += 7;
         if(!mem_validator(expression, 3, id)) {
-          if(expression[id++] == ",") {
+          if(expression.at(id++) == ",") {
             // imm check
-            if(isIMM(expression[id++])){
-              if(expression[id++] == ";") {
+            if(isIMM(expression.at(id++))){
+              if(expression.size() == id) {
                 return 0;
               }
-              else if(expression.size() == id){
+              else if(expression.at(id) == ";"){
                 return 0;
               }
             }
           }
         }
       }
-      else if(expression[1] == "BYTE" && expression[2] == "PTR") {
+      else if(expression.at(1) == "BYTE" && expression.at(2) == "PTR") {
+        offset += 6;
         if(!mem_validator(expression, 3, id)) {
-          if(expression[id++] == ",") {
+          if(expression.at(id++) == ",") {
             // imm check
-            if(isIMM(expression[id++])){
-              if(expression[id++] == ";") {
+            if(isIMM(expression.at(id++))){
+              if(expression.size() == id) {
                 return 0;
               }
-              else if(expression.size() == id){
+              else if(expression.at(id) == ";"){
                 return 0;
               }
             }
@@ -303,27 +319,33 @@ int MOV_validator(const Expression& expression, size_t& offset) {
         }
       }
       // MOV reg, mem 
-      else if(isAsmReg(expression[1])){
-        if(expression[2] == ","){
+      else if(isAsmReg(expression.at(1))){
+        if(isReg_32(expression.at(1)) || isReg_16(expression.at(1))){
+          offset += 6;
+        }
+        else{
+          offset += 5;
+        }
+        if(expression.at(2) == ","){
           if(!mem_validator(expression, 3, id)){
             return 0;
           }
-          else if(expression[3] == "DWORD" && expression[4] == "PTR") {
-            if(isReg_32(expression[1])) {
+          else if(expression.at(3) == "DWORD" && expression.at(4) == "PTR") {
+            if(isReg_32(expression.at(1))) {
               if(!mem_validator(expression, 5, id)){
                 return 0;
               }
             }
           }
-          else if(expression[3] == "WORD" && expression[4] == "PTR") {
-            if(getAsmLexemType(expression[1]) == LEXEM_TYPE::REGISTER_16) {
+          else if(expression.at(3) == "WORD" && expression.at(4) == "PTR") {
+            if(getAsmLexemType(expression.at(1)) == LEXEM_TYPE::REGISTER_16) {
               if(!mem_validator(expression, 5, id)){
                 return 0;
               }
             }
           }
-          else if(expression[3] == "BYTE" && expression[4] == "PTR") {
-            if(getAsmLexemType(expression[1]) == LEXEM_TYPE::REGISTER_8) {
+          else if(expression.at(3) == "BYTE" && expression.at(4) == "PTR") {
+            if(getAsmLexemType(expression.at(1)) == LEXEM_TYPE::REGISTER_8) {
               if(!mem_validator(expression, 5, id)){
                 return 0;
               }
@@ -352,6 +374,11 @@ int OR_validator(const Expression &expression, size_t& offset) {
         LEXEM_TYPE reg_1_size = getAsmLexemType(expression.at(1));
         LEXEM_TYPE reg_2_size = getAsmLexemType(expression.at(3));
         if(reg_1_size == reg_2_size) {
+          if(reg_1_size == LEXEM_TYPE::REGISTER_8
+           || reg_2_size == LEXEM_TYPE::REGISTER_16)
+            offset += 2;
+          else if(reg_2_size == LEXEM_TYPE::REGISTER_32)
+            offset += 3;
           if(expression.size() == 4) {
             return 0;
           }
@@ -373,6 +400,7 @@ int PUSH_validator(const Expression &expression, size_t& offset) {
       //return 0;
     //}
     if(getAsmDictType(expression.at(id)) == ASM_DICT::DWORD) {
+      offset += 6;
       if(getAsmDictType(expression.at(++id)) == ASM_DICT::PTR) {
         if(!mem_validator(expression, ++id, id)) {
           return 0;
@@ -380,6 +408,7 @@ int PUSH_validator(const Expression &expression, size_t& offset) {
       }
     }
     else if(getAsmDictType(expression.at(id)) == ASM_DICT::WORD) {
+      offset += 5;
       if(getAsmDictType(expression.at(++id)) == ASM_DICT::PTR) {
         if(!mem_validator(expression, ++id, id)) {
           return 0;
