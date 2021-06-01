@@ -30,6 +30,12 @@ private:
     // const LEXEM_TYPE reg_size;
   // };
   class Label {
+     public:
+    Label(const std::string& name, const std::size_t& id)
+     :lbl_name(name), addr(id){}
+    bool operator<(const Label& rhs) const {
+     return lbl_name < rhs.lbl_name;}
+     private:
     const std::string lbl_name;
     const size_t addr;
   };

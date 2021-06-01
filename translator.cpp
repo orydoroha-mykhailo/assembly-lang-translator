@@ -3,9 +3,11 @@
 using namespace std;
 
 #include <cctype>
+#include <regex>
 #include <iomanip>
 #include <string>
 #include <set>
+int LABLE_validator(const Expression &expression, size_t& offset);
 int PUSH_validator(const Expression &expression, size_t& offset);
 int OR_validator(const Expression &expression, size_t& offset);
 int MOV_validator(const Expression& expression, size_t& offset);
@@ -146,8 +148,14 @@ int Translator::validate_expression(const Expression& expression, size_t& offset
     }
   }
   else if(expression.back() == ":") {
-    /* Label */
-      return 0;
+    try {
+      if(!LABLE_validator(expression, offset)) {
+        labels.insert(Label{expression.at(0), offset});
+        return 0;
+      }
+    }
+    catch(const std::exception& e) {
+    }
   }
   else if(expression.front() == ";") {
     /* Commment */
@@ -310,6 +318,23 @@ int PUSH_validator(const Expression &expression, size_t& offset) {
   return -1;
 }
 
+int LABLE_validator(const Expression &expression, size_t& offset) {
+  const regex r(R"(\w+)");
+  if(getAsmDictType(expression.back()) == ASM_DICT::COL) {
+    if(expression.size() == 2) {
+      if(regex_match(expression.at(0), r)) {
+        return 0;
+      }
+    }
+    else if(getAsmDictType(expression.at(2)) == ASM_DICT::SEMICOL) {
+      if(regex_match(expression.at(0), r)) {
+        return 0;
+      }
+    }
+  }
+  return -1;
+}
+
 int mem_validator(const Expression& expression, const size_t& bracket_start_id,
  size_t& end_id) {
   size_t i = bracket_start_id;
@@ -391,5 +416,5 @@ bool isNumber(const Lexem& lexem) {
 bool isIMM(const Lexem& lexem) {
   if(isNumber(lexem))
     return true;
-  else false;
+  return false;
 }
