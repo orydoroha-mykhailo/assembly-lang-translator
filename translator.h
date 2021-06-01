@@ -33,8 +33,10 @@ private:
   };
   class Segment {
   public:
+    Segment(std::string name):seg_name(name){}
     bool isActive() const
     {return isactive;}
+    std::string GetName() const{return seg_name;}
     bool operator<(const Segment& rhs) const {
      return seg_name < rhs.seg_name;}
     void AddLabel(const Label& lbl){
@@ -45,9 +47,12 @@ private:
       }
       labels.insert(lbl);
     }
+    void Close(){
+      isactive = false;
+    }
 
   private:
-    bool isactive = false;
+    bool isactive = true;
     std::string seg_name;
     std::set<Variable> vars;
     std::set<Label> labels;
