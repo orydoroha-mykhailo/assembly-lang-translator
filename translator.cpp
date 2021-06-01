@@ -6,6 +6,7 @@ using namespace std;
 #include <iomanip>
 #include <string>
 #include <set>
+int PUSH_validator(const Expression &expression, size_t& offset);
 int OR_validator(const Expression &expression, size_t& offset);
 int MOV_validator(const Expression& expression, size_t& offset);
 bool isAsmReg(const Lexem& lexem);
@@ -106,7 +107,7 @@ int Translator::validate_expression(const Expression& expression, size_t& offset
       catch(const std::exception& e) {
       }
      }
-    if(getAsmDictType(expression.front())
+    else if(getAsmDictType(expression.front())
      == ASM_DICT::OR) {
       try {
         if(!OR_validator(expression, offset)) {
@@ -116,7 +117,7 @@ int Translator::validate_expression(const Expression& expression, size_t& offset
       catch(const std::exception& e) {
       }
     }
-    if(getAsmDictType(expression.front())
+    else if(getAsmDictType(expression.front())
      == ASM_DICT::RET) {
        if(expression.size() == 1){
          return 0;
@@ -124,6 +125,16 @@ int Translator::validate_expression(const Expression& expression, size_t& offset
        else if(getAsmDictType(expression.at(1)) == ASM_DICT::SEMICOL){
          return 0;
        }
+    }
+    else if(getAsmDictType(expression.front())
+     == ASM_DICT::PUSH) {
+      try {
+        if(!PUSH_validator(expression, offset)) {
+          return 0;
+        }
+      }
+      catch(const std::exception& e) {
+      }
     }
   }
   else if(getAsmLexemType(expression.back()) == LEXEM_TYPE::SEGMENT_INSTRUCTION) {
@@ -234,17 +245,14 @@ int MOV_validator(const Expression& expression, size_t& offset) {
             }
           }
           else if(expression[3] == "WORD" && expression[4] == "PTR") {
-            if(getAsmLexemType(expression[1]) == LEXEM_TYPE::REGISTER_32
-             || getAsmLexemType(expression[1]) == LEXEM_TYPE::REGISTER_16) {
+            if(getAsmLexemType(expression[1]) == LEXEM_TYPE::REGISTER_16) {
               if(!mem_validator(expression, 5, id)){
                 return 0;
               }
             }
           }
           else if(expression[3] == "BYTE" && expression[4] == "PTR") {
-            if(getAsmLexemType(expression[1]) == LEXEM_TYPE::REGISTER_32
-             || getAsmLexemType(expression[1]) == LEXEM_TYPE::REGISTER_16
-             ||  getAsmLexemType(expression[1]) == LEXEM_TYPE::REGISTER_8) {
+            if(getAsmLexemType(expression[1]) == LEXEM_TYPE::REGISTER_8) {
               if(!mem_validator(expression, 5, id)){
                 return 0;
               }
@@ -272,6 +280,31 @@ int OR_validator(const Expression &expression, size_t& offset) {
           }
         }
       } 
+    }
+  }
+  return -1;
+}
+
+int PUSH_validator(const Expression &expression, size_t& offset) {
+  size_t id = 0;
+  if(getAsmDictType(expression.at(id++)) == ASM_DICT::PUSH) {
+    /* Let it be error if no keyword before MEM */
+    //if(!mem_validator(expression, id, id)) {
+      //return 0;
+    //}
+    if(getAsmDictType(expression.at(id)) == ASM_DICT::DWORD) {
+      if(getAsmDictType(expression.at(++id)) == ASM_DICT::PTR) {
+        if(!mem_validator(expression, ++id, id)) {
+          return 0;
+        }
+      }
+    }
+    else if(getAsmDictType(expression.at(id)) == ASM_DICT::WORD) {
+      if(getAsmDictType(expression.at(++id)) == ASM_DICT::PTR) {
+        if(!mem_validator(expression, ++id, id)) {
+          return 0;
+        }
+      }
     }
   }
   return -1;
@@ -350,7 +383,7 @@ bool isAsmReg(const Lexem& lexem) {
 
 bool isNumber(const Lexem& lexem) {
   for (char const &c : lexem) {
-    if (std::isdigit(c) == 0) return false;
+    if (!std::isdigit(c)) return false;
   }
   return true;
 }
