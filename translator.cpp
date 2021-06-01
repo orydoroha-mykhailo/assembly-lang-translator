@@ -7,11 +7,14 @@ using namespace std;
 #include <iomanip>
 #include <string>
 #include <set>
+int POP_validator(const Expression &expression, size_t& offset);
 int LABLE_validator(const Expression &expression, size_t& offset);
 int PUSH_validator(const Expression &expression, size_t& offset);
 int OR_validator(const Expression &expression, size_t& offset);
 int MOV_validator(const Expression& expression, size_t& offset);
 bool isAsmReg(const Lexem& lexem);
+bool isReg_8(const Lexem& lexem);
+bool isReg_16(const Lexem& lexem);
 bool isReg_32(const Lexem& lexem);
 bool isNumber(const Lexem& str);
 bool isIMM(const Lexem& str);
@@ -138,26 +141,54 @@ int Translator::validate_expression(const Expression& expression, size_t& offset
       catch(const std::exception& e) {
       }
     }
+    else if(getAsmDictType(expression.front())
+     == ASM_DICT::POP) {
+       try
+       {
+         if(!POP_validator(expression, offset)){
+           return 0;
+         }
+       }
+       catch(const std::exception& e)
+       {}
+       
+     }
   }
-  else if(getAsmLexemType(expression.back()) == LEXEM_TYPE::SEGMENT_INSTRUCTION) {
-    if(expression.back() == "SEGMENT") {
-      return 0;
-    }
-    else if(expression.front() == "ENDS") {
-      return 0;
-    }
-  }
-  else if(expression.back() == ":") {
-    try {
-      if(!LABLE_validator(expression, offset)) {
-        labels.insert(Label{expression.at(0), offset});
+
+  if(expression.size() > 1) {
+    if(getAsmLexemType(expression.back()) == LEXEM_TYPE::SEGMENT_INSTRUCTION){
+      if(expression.at(1) == "SEGMENT") {
+        return 0;
+      }
+      else if(expression.at(1) == "ENDS") {
         return 0;
       }
     }
-    catch(const std::exception& e) {
+    else if(expression.at(1) == ":") {
+      try {
+        if(!LABLE_validator(expression, offset)) {
+          // some troubles here
+          if(count_if(Segments.begin(), Segments.end(),
+          [](const Segment& seg){
+            return seg.isActive();
+          }) == 1){
+            for(auto s : Segments){
+              if(s.isActive()){
+                s.AddLabel({expression.at(0), offset});
+                return 0;
+              }
+            }
+          }
+        }
+      }
+      catch(const std::exception& e) {
+      }
     }
   }
-  else if(expression.front() == ";") {
+  if(expression.front() == "END") {
+    return 0;
+  }
+  if(expression.front() == ";") {
     /* Commment */
       return 0;
   }
@@ -417,4 +448,13 @@ bool isIMM(const Lexem& lexem) {
   if(isNumber(lexem))
     return true;
   return false;
+}
+
+int POP_validator(const Expression &expression, size_t& offset){
+  if(getAsmDictType(expression.at(0)) == ASM_DICT::POP){
+    if(isReg_32(expression.at(1)) || isReg_16(expression.at(1))){
+      return 0;
+    }
+  }
+  return -1;
 }
