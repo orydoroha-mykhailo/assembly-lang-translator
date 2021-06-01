@@ -25,6 +25,10 @@ private:
     std::string seg_name;
     std::set<Variable> vars;
   };
+  // class Register{
+    // std::string reg_name;
+    // const LEXEM_TYPE reg_size;
+  // };
   class Label {
     const std::string lbl_name;
     const size_t addr;

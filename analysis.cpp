@@ -96,7 +96,7 @@ std::string getSentenceStructure(const Expression& expression) {
 
     size_t op1 = 0;
     size_t op1_cnt = 0;
-    for (size_t i = 1 + lable + colon; i < expression.size() && expression[i] != ","; i++) {
+    for (size_t i = 1 + lable + colon; i < expression.size() && expression.at(i) != ","; i++) {
       op1 = 2 + lable + colon;
       op1_cnt++;
     }
@@ -106,7 +106,7 @@ std::string getSentenceStructure(const Expression& expression) {
     if (op1 != 0 && op1 + op1_cnt - 1 < expression.size()) {
       size_t op2 = 0;
       size_t op2_cnt = 0;
-      for (size_t i = op1 + op1_cnt; i < expression.size() && expression[i] != ","; i++) {
+      for (size_t i = op1 + op1_cnt; i < expression.size() && expression.at(i) != ","; i++) {
         op2 = op1 + op1_cnt + 1;
         op2_cnt++;
       }
