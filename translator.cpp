@@ -16,6 +16,8 @@ int IMUL_validator(const Expression& expression, size_t& offset);
 int VAR_validator(const Expression& expression, size_t& offset, LEXEM_TYPE& var_type);
 LEXEM_TYPE getIMM_type(const Lexem& lexem);
 int VAR_name_validator(const Lexem& lexem);
+int mem_validator(const Expression& expression,
+ const size_t& bracket_id, size_t& end_id);
 bool isAsmReg(const Lexem& lexem);
 bool isReg_8(const Lexem& lexem);
 bool isReg_16(const Lexem& lexem);
@@ -23,8 +25,6 @@ bool isReg_32(const Lexem& lexem);
 bool isNumber(const Lexem& str);
 LEXEM_TYPE IMM_size(const Lexem& lexem);
 bool isIMM(const Lexem& str);
-int mem_validator(const Expression& expression,
- const size_t& bracket_id, size_t& end_id);
 
 string ToUpper(string str) {
   for (size_t i = 0; i < str.size(); i++) 
@@ -85,21 +85,20 @@ void Translator::createListing() {
 */
 
 void Translator::createListing() {
-  size_t offset = 0;
+  global_offset = 0;
   size_t line_num = 0;
-  size_t current_offset;
+  size_t current_offset = 0;
   for (const auto& line: all_expressions_) {
-    current_offset = 0;
     line_num++;
     if(!validate_expression(line, current_offset)) {
-      offset += current_offset;
-      release_expression(line, line_num, offset);
+      release_expression(line, line_num, global_offset);
     }
     else {
-      release_expression(line, line_num, offset);
+      release_expression(line, line_num, global_offset);
       error_msg({"Analysis interrupt!"}, line_num);
       //return;
     }
+    global_offset += current_offset;
   }
 }
 
@@ -180,38 +179,84 @@ int Translator::validate_expression(const Expression& expression, size_t& offset
       LEXEM_TYPE var_type;
       if(!VAR_validator(expression, offset, var_type)) {
         for(auto seg: Segments) {
+          if(seg.isActive()) {
+            Segments.erase(seg);
             seg.AddVariable({expression.at(0), var_type});
+            Segments.insert(seg);
+          }
         }
         return 0;
       }
+    }
+    else if(expression.at(1) == "PROC") {
+      if(!PROC_validator(expression, offset)) {
+        return 0;
+      }
+    }
+    else if(expression.at(1) == "ENDP") {
+      return 0;
+    }
+    else if(expression.front() == "JZ") {
+      if(!JZ_validator(expression, offset)) {
+        return 0;
+      }
+    }
+    else if(expression.front() == "CALL"){
+      try{
+        if(!CALL_validator(expression, offset)) {
+          return 0;
+        }
+      }
+      catch(const std::exception& e){}
+      
     }
     else if(expression.at(1) == "SEGMENT") {
       if(!VAR_name_validator(expression.front())) {
         if(expression.size() > 2){
           if(getAsmDictType(expression.at(2)) == ASM_DICT::SEMICOL) {
-            offset = 0;
+            global_offset = 0;
             Segments.insert(expression.front());
-            return 0;
+            for(auto s: Segments) {
+              if(s.GetName() == expression.at(0)) {
+                Segments.erase(s);
+                s.Activate();
+                Segments.insert(s);
+                return 0;
+              }
+            }
           }
         }
         offset = 0;
         Segments.insert(expression.front());
-        return 0;
+        for(auto s: Segments) {
+          if(s.GetName() == expression.at(0)) {
+            Segments.erase(s);
+            s.Activate();
+            Segments.insert(s);
+            return 0;
+          }
+        }
       }
     }
     else if(expression.at(1) == "ENDS") {
       if(expression.size() == 2) {
         for(auto seg: Segments) {
-          if(seg.GetName() == expression.front()){
+          if(seg.GetName() == expression.at(0)
+           && seg.isActive()){
+            Segments.erase(seg);
             seg.Close();
+            Segments.insert(seg);
             return 0;
           }
         }
       }
       else if(getAsmDictType(expression.at(2)) == ASM_DICT::SEMICOL) {
         for(auto seg: Segments) {
-          if(seg.GetName() == expression.front()){
+          if(seg.GetName() == expression.at(0)
+           && seg.isActive()){
+            Segments.erase(seg);
             seg.Close();
+            Segments.insert(seg);
             return 0;
           }
         }
@@ -226,7 +271,9 @@ int Translator::validate_expression(const Expression& expression, size_t& offset
           }) == 1){
             for(auto s : Segments){
               if(s.isActive()){
+                Segments.erase(s);
                 s.AddLabel({expression.at(0), offset});
+                Segments.insert(s);
                 return 0;
               }
             }
@@ -270,6 +317,91 @@ void Translator::error_msg(const std::string msg, const size_t& line) const {
   listing_file << "*Error* " << file_name_ << "(" << line<< ") " << msg << endl;
   listing_file.close();
 
+}
+
+int Translator::JZ_validator(const Expression& expression, size_t& offset) {
+  if(expression.at(0) == "JZ"){
+    return 0;
+  }
+  return -1;
+}
+
+
+int Translator::add_PROC(const Lexem& name){
+  for(auto s: Segments){
+    if(s.isActive()) {
+      if(s.count_var({name, LEXEM_TYPE::PROC_INSTRUCTION}) == 0) {
+        Segments.erase(s);
+        s.AddVariable({name, LEXEM_TYPE::PROC_INSTRUCTION});
+        Segments.insert(s);
+        return 0;
+      }
+    }
+  }
+  return -1;
+}
+
+int Translator::PROC_validator(const Expression& expression, size_t& offset) {
+  if(!VAR_name_validator(expression.at(0))) {
+    if(expression.at(1) == "PROC") {
+      if(expression.size() == 2){
+        if(!add_PROC(expression.at(0)))
+          return 0;
+      }
+      else if(expression.at(2) == ";") {
+        if(!add_PROC(expression.at(0)))
+          return 0;
+      }
+      else if(expression.at(2) == "FAR") {
+        if(expression.size() == 3){
+          if(!add_PROC(expression.at(0)))
+            return 0;
+        }
+        else if(expression.at(3) == ";") {
+          if(!add_PROC(expression.at(0)))
+            return 0;
+        }
+
+      }
+    }
+  }
+  return -1;
+}
+
+int Translator::CALL_validator(const Expression& expression, size_t& offset) {
+  if(expression.front() == "CALL"){
+    if(!VAR_name_validator(expression.at(1))) {
+      for(auto s: Segments) {
+        if(s.isActive()) {
+          if(s.count_var({expression.at(1), LEXEM_TYPE::PROC_INSTRUCTION}) == 1) {
+            if(expression.size() == 2) {
+              offset += 3;
+              return 0;
+            }
+            else if(expression.at(2) == ";") {
+              offset += 3;
+              return 0;
+            }
+          }
+        }
+      }
+      for(auto s: Segments) {
+        if(!s.isActive()) {
+          if(s.count_var({expression.at(1), LEXEM_TYPE::PROC_INSTRUCTION}) == 1) {
+            if(expression.size() == 2) {
+              offset += 5;
+              return 0;
+            }
+            else if(expression.at(2) == ";") {
+              offset += 5;
+              return 0;
+            }
+          }
+        }
+      }
+    }
+  }
+  return -1;
 }
 int VAR_validator(const Expression& expression, size_t& offset, LEXEM_TYPE& var_type) {
   if(expression.at(1) == "DB") {
@@ -370,21 +502,7 @@ int MOV_validator(const Expression& expression, size_t& offset) {
     if(expression.at(0) == "MOV"){
       // MOV mem, imm
       size_t id;
-      if(!mem_validator(expression, 1, id)) {
-        if(expression.at(id++) == ",") {
-          // imm check
-          if(isIMM(expression.at(id++))){
-            offset += 7;
-            if(expression.at(id) == ";") {
-              return 0;
-            }
-            else if(expression.size() == id){
-              return 0;
-            }
-          }
-        }
-      }
-      else if(expression.at(1) == "DWORD" && expression.at(2) == "PTR") {
+      if(expression.at(1) == "DWORD" && expression.at(2) == "PTR") {
         offset += 10;
         if(!mem_validator(expression, 3, id)) {
           if(expression.at(id++) == ",") {
@@ -554,9 +672,8 @@ int LABLE_validator(const Expression &expression, size_t& offset) {
   return -1;
 }
 
-int mem_validator(const Expression& expression, const size_t& bracket_start_id,
- size_t& end_id) {
-
+int mem_validator(const Expression& expression,
+ const size_t& bracket_start_id, size_t& end_id) {
   size_t i = bracket_start_id;
   if(expression.at(i) == "[") {
     if(isReg_32(expression.at(++i))) {

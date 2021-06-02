@@ -6,6 +6,8 @@
 #include <iostream>
 #include <fstream>
 
+static size_t global_offset = 0;
+
 class Translator {
 public:
   Translator(const std::string& file_name);
@@ -13,6 +15,8 @@ public:
   //friend int mem_validator(Translator& obj, const Expression& expression, const size_t& bracket_start_id,
    //size_t& end_id);
 
+  friend int mem_validator(const Expression& expression,
+   const size_t& bracket_id, size_t& end_id);
   void createListing();
 
   void outAllLexems();
@@ -34,9 +38,12 @@ private:
   public:
     Variable(const std::string& name, const LEXEM_TYPE& var_type)
      :var_name(name), size(var_type){}
+    bool operator==(const Variable& rhs) const {
+     return var_name == rhs.var_name && size == rhs.GetType();}
     bool operator<(const Variable& rhs) const {
      return var_name < rhs.var_name;}
     std::string GetName() const{return var_name;}
+    LEXEM_TYPE GetType() const{return size;}
 
   private:
     const std::string var_name;
@@ -50,6 +57,17 @@ private:
     std::string GetName() const{return seg_name;}
     bool operator<(const Segment& rhs) const {
      return seg_name < rhs.seg_name;}
+    
+    size_t count_var(const Variable& var) {
+      size_t counter = 0;
+      for(auto v : vars) {
+        if(var == v) {
+          counter++;
+        }
+      }
+      return counter;
+    }
+
     void AddLabel(const Label& lbl){
       for(auto this_lbl: labels){
         if(lbl.GetName() == this_lbl.GetName()){
@@ -69,9 +87,12 @@ private:
     void Close(){
       isactive = false;
     }
+    void Activate(){
+      isactive = true;
+    }
 
   private:
-    bool isactive = true;
+    bool isactive;
     std::string seg_name;
     std::set<Variable> vars;
     std::set<Label> labels;
@@ -80,6 +101,13 @@ private:
     // ASM_DICT reg_name;
     // const LEXEM_TYPE reg_size;
   // };
+
+
+  int JZ_validator(const Expression& expression, size_t& offset);
+  int PROC_validator(const Expression& expression, size_t& offset);
+  int CALL_validator(const Expression& expression, size_t& offset);
+  int add_PROC(const Lexem& name);
+
   int validate_expression(const Expression& expression, size_t& offset);
   void release_expression(const Expression& expression, const size_t& line_num, const size_t& offset) const;
   void error_msg(const std::string msg, const size_t& line) const;
