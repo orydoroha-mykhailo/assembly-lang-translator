@@ -360,7 +360,12 @@ int MOV_validator(const Expression& expression, size_t& offset) {
 
 int POP_validator(const Expression &expression, size_t& offset){
   if(getAsmDictType(expression.at(0)) == ASM_DICT::POP){
-    if(isReg_32(expression.at(1)) || isReg_16(expression.at(1))){
+    if(isReg_32(expression.at(1))) {
+      offset += 2;
+      return 0;
+    }
+    else if(isReg_16(expression.at(1))){
+      offset += 1;
       return 0;
     }
   }
