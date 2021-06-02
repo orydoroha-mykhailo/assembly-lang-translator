@@ -10,6 +10,9 @@ class Translator {
 public:
   Translator(const std::string& file_name);
 
+  //friend int mem_validator(Translator& obj, const Expression& expression, const size_t& bracket_start_id,
+   //size_t& end_id);
+
   void createListing();
 
   void outAllLexems();
@@ -28,6 +31,14 @@ private:
   };
   friend class Segment;
   class Variable {
+  public:
+    Variable(const std::string& name, const LEXEM_TYPE& var_type)
+     :var_name(name), size(var_type){}
+    bool operator<(const Variable& rhs) const {
+     return var_name < rhs.var_name;}
+    std::string GetName() const{return var_name;}
+
+  private:
     const std::string var_name;
     const LEXEM_TYPE size;
   };
@@ -46,6 +57,14 @@ private:
         }
       }
       labels.insert(lbl);
+    }
+    void AddVariable(const Variable& var){
+      for(auto this_var: vars){
+        if(this_var.GetName() == var.GetName()){
+          throw std::invalid_argument("variable with the same name already exist!");
+        }
+      }
+      vars.insert(var);
     }
     void Close(){
       isactive = false;
