@@ -6,7 +6,7 @@
 
 👤 **Orydoroha Mykhailo**
 
-* Github: [@orydoroha-mykhailo](https://github.com/orydoroha-mykhailo)
+* Github: [Mykhailo Orydoroha](https://github.com/orydoroha-mykhailo)
 * LinkedIn: [Mykhailo Orydoroha](https://linkedin.com/in/mykhailo-o-948b03133)
 
 ## Show your support
