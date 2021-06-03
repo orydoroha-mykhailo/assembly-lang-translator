@@ -194,6 +194,7 @@ int Translator::validate_expression(const Expression& expression, size_t& offset
       }
     }
     else if(expression.at(1) == "ENDP") {
+      offset = 0;
       return 0;
     }
     else if(expression.front() == "JZ") {
@@ -211,6 +212,7 @@ int Translator::validate_expression(const Expression& expression, size_t& offset
       
     }
     else if(expression.at(1) == "SEGMENT") {
+      offset = 0;
       if(!VAR_name_validator(expression.front())) {
         if(expression.size() > 2){
           if(getAsmDictType(expression.at(2)) == ASM_DICT::SEMICOL) {
@@ -285,9 +287,11 @@ int Translator::validate_expression(const Expression& expression, size_t& offset
     }
   }
   else if(expression.front() == "END") {
+    offset = 0;
     return 0;
   }
   if(expression.front() == ";") {
+    offset = 0;
     /* Commment */
       return 0;
   }
@@ -342,6 +346,7 @@ int Translator::add_PROC(const Lexem& name){
 }
 
 int Translator::PROC_validator(const Expression& expression, size_t& offset) {
+  offset = 0;
   if(!VAR_name_validator(expression.at(0))) {
     if(expression.at(1) == "PROC") {
       if(expression.size() == 2){
