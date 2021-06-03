@@ -59,6 +59,17 @@ Filename: test.asm
     39	0006                    CALL PROC1 
     40	000B                    CODE2 ENDS 
     41	000B                    END 
+
+Symbol Table
+
+Symbol Name                Type     Value
+PROC1                      FAR      CODE1:0000
+VOL                        NEAR     CODE1:0074
+PROC2                      NEAR     CODE2:0000
+STRING                     BYTE     DATA:0000
+VAR0BD                     BYTE     DATA:0005
+VAR0DH                     DWORD    DATA:0008
+VAR0WH                     WORD     DATA:0006
 ```
 
 ## Show your support
