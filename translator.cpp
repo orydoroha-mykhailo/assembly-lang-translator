@@ -100,6 +100,7 @@ void Translator::createListing() {
     }
     global_offset += current_offset;
   }
+  print_Symbol_Table();
 }
 
 
@@ -309,14 +310,38 @@ void Translator::release_expression(const Expression& expression,
 
 void Translator::print_Symbol_Table() const {
   ofstream listing_file(covertNameToLstExt(file_name_), ios_base::app);
-  listing_file << "Symblo Table" << endl << endl
+  listing_file << endl << "Symbol Table" << endl << endl
   << "Symbol Name" 
   << setfill(' ') 
   << setw(20) << "Type"
   << setw(10) << "Value"
   << endl;
   for(auto s : Segments) {
-    // for(auto v: s.vars) {}
+    for(const auto& v: s.vars) {
+      ASM_DICT t = v.GetType();
+      string type;
+      if(t == ASM_DICT::NEAR) {
+        type = "NEAR";
+      }
+      else if(t == ASM_DICT::FAR) {
+        type = "FAR";
+      }
+      else if(t == ASM_DICT::DD) {
+        type = "DWORD";
+      }
+      else if(t == ASM_DICT::DW) {
+        type = "WORD";
+      }
+      else if(t == ASM_DICT::DB) {
+        type = "BYTE";
+      }
+      listing_file << std::left << setw(27) << v.GetName()
+      << setfill(' ') 
+      << setw(9) << type
+      << s.GetName()<< ':' << std::right << setfill('0') << setw(4) << v.GetAddr()
+      << setfill(' ') << endl;
+
+    }
   }
   listing_file.close();
 }

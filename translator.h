@@ -30,6 +30,7 @@ private:
      return var_name < rhs.var_name;}
     std::string GetName() const{return var_name;}
     ASM_DICT GetType() const{return attribute;}
+    size_t GetAddr() const{return var_offset;}
     void SetOffset(const std::size_t& offset) {
       var_offset = offset;
     }
@@ -40,6 +41,7 @@ private:
   };
   class Segment {
   public:
+    friend class Translator;
     Segment(std::string name):seg_name(name){}
     bool isActive() const
     {return isactive;}
@@ -84,7 +86,6 @@ private:
   // };
 
 
-  friend class Segment;
   int JZ_validator(const Expression& expression, size_t& offset);
   int LABLE_validator(const Expression &expression, size_t& offset);
   int PROC_validator(const Expression& expression, size_t& offset);
