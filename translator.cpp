@@ -270,19 +270,7 @@ int Translator::validate_expression(const Expression& expression, size_t& offset
     else if(expression.at(1) == ":") {
       try {
         if(!LABLE_validator(expression, offset)) {
-          if(count_if(Segments.begin(), Segments.end(),
-          [](const Segment& seg){
-            return seg.isActive();
-          }) == 1){
-            for(auto s : Segments){
-              if(s.isActive()){
-                Segments.erase(s);
-                s.AddLabel({expression.at(0), offset});
-                Segments.insert(s);
-                return 0;
-              }
-            }
-          }
+          return 0;
         }
       }
       catch(const std::exception& e) {
@@ -309,13 +297,27 @@ void Translator::release_expression(const Expression& expression,
   ss << std::hex << offset;
   string offset_ = ToUpper(ss.str());
 
-  listing_file << setfill(' ');
-  listing_file << setw(6) << line_num << "\t" << setw(4);
-  listing_file << setfill('0');
-  listing_file << setw(4) << offset_;
-  listing_file << setfill(' ');
-  listing_file << setw(20)  << ""/* flags */;
-  listing_file << expression << endl;
+  listing_file << setfill(' ')
+  << setw(6) << line_num << "\t" << setw(4)
+  << setfill('0')
+  << setw(4) << offset_
+  << setfill(' ')
+  << setw(20)  << ""/* flags */
+  << expression << endl;
+  listing_file.close();
+}
+
+void Translator::print_Symbol_Table() const {
+  ofstream listing_file(covertNameToLstExt(file_name_), ios_base::app);
+  listing_file << "Symblo Table" << endl << endl
+  << "Symbol Name" 
+  << setfill(' ') 
+  << setw(20) << "Type"
+  << setw(10) << "Value"
+  << endl;
+  for(auto s : Segments) {
+    // for(auto v: s.vars) {}
+  }
   listing_file.close();
 }
 
@@ -336,7 +338,7 @@ int Translator::JZ_validator(const Expression& expression, size_t& offset) {
 }
 
 
-int Translator::add_Variable(const Translator::Variable& var){
+int Translator::add_Variable(Translator::Variable var){
   for(auto s: Segments){
     if(s.isActive()) {
       if(s.count_var(var) == 0) {
@@ -847,7 +849,7 @@ LEXEM_TYPE IMM_size(const Lexem& lexem) {
     if(tmp > -32'768  && tmp < 32'767) {
       return LEXEM_TYPE::DATA_TYPE_16;
     }
-    if(tmp > 0 && tmp < 65,535) {
+    if(tmp > 0 && tmp < 65'535) {
       return LEXEM_TYPE::DATA_TYPE_16;
     }
     if(tmp > -2'147'483'648 && tmp < 2'147'483'647) {
