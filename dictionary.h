@@ -63,6 +63,7 @@ enum class ASM_DICT{
   ENDS,
   PROC,
   FAR,
+  NEAR,
   ENDP,
   END,
   UNDEFINED

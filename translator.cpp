@@ -13,7 +13,7 @@ int PUSH_validator(const Expression &expression, size_t& offset);
 int OR_validator(const Expression &expression, size_t& offset);
 int MOV_validator(const Expression& expression, size_t& offset);
 int IMUL_validator(const Expression& expression, size_t& offset);
-int VAR_validator(const Expression& expression, size_t& offset, LEXEM_TYPE& var_type);
+int VAR_validator(const Expression& expression, size_t& offset, ASM_DICT& var_type);
 LEXEM_TYPE getIMM_type(const Lexem& lexem);
 int VAR_name_validator(const Lexem& lexem);
 int mem_validator(const Expression& expression,
@@ -130,6 +130,7 @@ int Translator::validate_expression(const Expression& expression, size_t& offset
     }
     else if(getAsmDictType(expression.front())
      == ASM_DICT::RET) {
+       offset = 1;
        if(expression.size() == 1){
          return 0;
        }
@@ -176,7 +177,7 @@ int Translator::validate_expression(const Expression& expression, size_t& offset
   if(expression.size() > 1) {
     if(expression.at(1) == "DB" || expression.at(1) == "DW"
      || expression.at(1) == "DD") {
-      LEXEM_TYPE var_type;
+      ASM_DICT var_type;
       if(!VAR_validator(expression, offset, var_type)) {
         for(auto seg: Segments) {
           if(seg.isActive()) {
@@ -241,6 +242,7 @@ int Translator::validate_expression(const Expression& expression, size_t& offset
       }
     }
     else if(expression.at(1) == "ENDS") {
+      offset = 0;
       if(expression.size() == 2) {
         for(auto seg: Segments) {
           if(seg.GetName() == expression.at(0)
@@ -253,6 +255,7 @@ int Translator::validate_expression(const Expression& expression, size_t& offset
         }
       }
       else if(getAsmDictType(expression.at(2)) == ASM_DICT::SEMICOL) {
+        offset = 0;
         for(auto seg: Segments) {
           if(seg.GetName() == expression.at(0)
            && seg.isActive()){
@@ -324,19 +327,21 @@ void Translator::error_msg(const std::string msg, const size_t& line) const {
 }
 
 int Translator::JZ_validator(const Expression& expression, size_t& offset) {
+  offset = 0;
   if(expression.at(0) == "JZ"){
+    offset += 4;
     return 0;
   }
   return -1;
 }
 
 
-int Translator::add_PROC(const Lexem& name){
+int Translator::add_Variable(const Translator::Variable& var){
   for(auto s: Segments){
     if(s.isActive()) {
-      if(s.count_var({name, LEXEM_TYPE::PROC_INSTRUCTION}) == 0) {
+      if(s.count_var(var) == 0) {
         Segments.erase(s);
-        s.AddVariable({name, LEXEM_TYPE::PROC_INSTRUCTION});
+        s.AddVariable(var);
         Segments.insert(s);
         return 0;
       }
@@ -350,20 +355,20 @@ int Translator::PROC_validator(const Expression& expression, size_t& offset) {
   if(!VAR_name_validator(expression.at(0))) {
     if(expression.at(1) == "PROC") {
       if(expression.size() == 2){
-        if(!add_PROC(expression.at(0)))
+        if(!add_Variable({expression.at(0), ASM_DICT::NEAR}))
           return 0;
       }
       else if(expression.at(2) == ";") {
-        if(!add_PROC(expression.at(0)))
+        if(!add_Variable({expression.at(0), ASM_DICT::NEAR}))
           return 0;
       }
       else if(expression.at(2) == "FAR") {
         if(expression.size() == 3){
-          if(!add_PROC(expression.at(0)))
+          if(!add_Variable({expression.at(0), ASM_DICT::FAR}))
             return 0;
         }
         else if(expression.at(3) == ";") {
-          if(!add_PROC(expression.at(0)))
+          if(!add_Variable({expression.at(0), ASM_DICT::FAR}))
             return 0;
         }
 
@@ -379,7 +384,17 @@ int Translator::CALL_validator(const Expression& expression, size_t& offset) {
     if(!VAR_name_validator(expression.at(1))) {
       for(auto s: Segments) {
         if(s.isActive()) {
-          if(s.count_var({expression.at(1), LEXEM_TYPE::PROC_INSTRUCTION}) == 1) {
+          if(s.count_var({expression.at(1), ASM_DICT::NEAR}) == 1) {
+            if(expression.size() == 2) {
+              offset += 3;
+              return 0;
+            }
+            else if(expression.at(2) == ";") {
+              offset += 3;
+              return 0;
+            }
+          }
+          else if(s.count_var({expression.at(1), ASM_DICT::FAR}) == 1) {
             if(expression.size() == 2) {
               offset += 3;
               return 0;
@@ -393,7 +408,7 @@ int Translator::CALL_validator(const Expression& expression, size_t& offset) {
       }
       for(auto s: Segments) {
         if(!s.isActive()) {
-          if(s.count_var({expression.at(1), LEXEM_TYPE::PROC_INSTRUCTION}) == 1) {
+          if(s.count_var({expression.at(1), ASM_DICT::FAR}) == 1) {
             if(expression.size() == 2) {
               offset += 5;
               return 0;
@@ -409,13 +424,14 @@ int Translator::CALL_validator(const Expression& expression, size_t& offset) {
   }
   return -1;
 }
-int VAR_validator(const Expression& expression, size_t& offset, LEXEM_TYPE& var_type) {
+int VAR_validator(const Expression& expression, size_t& offset, ASM_DICT& var_type) {
   offset = 0;
   if(expression.at(1) == "DB") {
+    var_type = ASM_DICT::DB;
     if(!VAR_name_validator(expression.at(0))) {
       if(isIMM(expression.at(2))) {
-        var_type = IMM_size(expression.at(2));
-        if(var_type == LEXEM_TYPE::DATA_TYPE_8) {
+        LEXEM_TYPE IMM_type = IMM_size(expression.at(2));
+        if(IMM_type == LEXEM_TYPE::DATA_TYPE_8) {
           offset += 1;
           return 0;
         }
@@ -428,11 +444,12 @@ int VAR_validator(const Expression& expression, size_t& offset, LEXEM_TYPE& var_
     }
   }
   else if(expression.at(1) == "DW") {
+    var_type = ASM_DICT::DW;
     if(!VAR_name_validator(expression.at(0))) {
       if(isIMM(expression.at(2))) {
-        var_type = IMM_size(expression.at(2));
-        if(var_type == LEXEM_TYPE::DATA_TYPE_16
-         || var_type == LEXEM_TYPE::DATA_TYPE_8) {
+        LEXEM_TYPE IMM_type = IMM_size(expression.at(2));
+        if(IMM_type == LEXEM_TYPE::DATA_TYPE_16
+         || IMM_type == LEXEM_TYPE::DATA_TYPE_8) {
           offset += 2;
           return 0;
         }
@@ -440,12 +457,13 @@ int VAR_validator(const Expression& expression, size_t& offset, LEXEM_TYPE& var_
     }
   }
   else if(expression.at(1) == "DD") {
+    var_type = ASM_DICT::DD;
     if(!VAR_name_validator(expression.at(0))) {
       if(isIMM(expression.at(2))) {
-        var_type = IMM_size(expression.at(2));
-        if(var_type == LEXEM_TYPE::DATA_TYPE_32
-         || var_type == LEXEM_TYPE::DATA_TYPE_16
-         || var_type == LEXEM_TYPE::DATA_TYPE_8) {
+        LEXEM_TYPE IMM_type = IMM_size(expression.at(2));
+        if(IMM_type == LEXEM_TYPE::DATA_TYPE_32
+         || IMM_type == LEXEM_TYPE::DATA_TYPE_16
+         || IMM_type == LEXEM_TYPE::DATA_TYPE_8) {
           offset += 4;
           return 0;
         }
@@ -460,38 +478,47 @@ int IMUL_validator(const Expression& expression, size_t& offset) {
   size_t id = 0;
   if(getAsmDictType(expression.at(id++)) == ASM_DICT::IMUL) {
     if(isAsmReg(expression.at(id++))){
-      ASM_DICT reg = getAsmDictType(expression.at(id-1));
       if(getAsmDictType(expression.at(id++)) == ASM_DICT::COM) {
-        if(expression.at(id) == "DWORD" && expression.at(id+1) == "PTR") {
-          id += 2;
-          if(!mem_validator(expression, id, id)) {
+        if(isReg_32(expression.at(id-2))) {
+          if(expression.at(id) == "DWORD" && expression.at(id+1) == "PTR") {
+            id += 2;
             offset += 2;
-            if(getAsmDictType(expression.at(id++)) == ASM_DICT::COM) {
-              if(isIMM(expression.at(id))) {
-                if(IMM_size(expression.at(id)) == LEXEM_TYPE::DATA_TYPE_8) {
-                  offset += 1;
-                  return 0;
-                }
-                else if(IMM_size(expression.at(id)) == LEXEM_TYPE::DATA_TYPE_32) {
-                  offset += 4;
-                  return 0;
+            if(!mem_validator(expression, id, id)) {
+              offset += 4;
+              if(getAsmDictType(expression.at(id++)) == ASM_DICT::COM) {
+                if(isIMM(expression.at(id))) {
+                  LEXEM_TYPE IMM = IMM_size(expression.at(id));
+                  if(IMM == LEXEM_TYPE::DATA_TYPE_8) {
+                    offset += 1;
+                    return 0;
+                  }
+                  else if(IMM == LEXEM_TYPE::DATA_TYPE_32 || IMM == LEXEM_TYPE::DATA_TYPE_16) {
+                    offset += 4;
+                    return 0;
+                  }
                 }
               }
             }
           }
         }
-        if(expression.at(id) == "WORD" && expression.at(id+1) == "PTR") {
-          id += 2;
-          if(!mem_validator(expression, id, id)) {
-            if(getAsmDictType(expression.at(id++)) == ASM_DICT::COM) {
-              if(isIMM(expression.at(id))) {
-                if(IMM_size(expression.at(id)) == LEXEM_TYPE::DATA_TYPE_8) {
-                  offset += 1;
-                  return 0;
-                }
-                else if(IMM_size(expression.at(id)) == LEXEM_TYPE::DATA_TYPE_16) {
-                  offset += 2;
-                  return 0;
+        else if(isReg_16(expression.at(id-2))) {
+          offset = 0;
+          if(expression.at(id) == "WORD" && expression.at(id+1) == "PTR") {
+            id += 2;
+            offset += 1;
+            if(!mem_validator(expression, id, id)) {
+              offset += 4;
+              if(getAsmDictType(expression.at(id++)) == ASM_DICT::COM) {
+                if(isIMM(expression.at(id))) {
+                  LEXEM_TYPE IMM = IMM_size(expression.at(id));
+                  if(IMM == LEXEM_TYPE::DATA_TYPE_8) {
+                    offset += 1;
+                    return 0;
+                  }
+                  else if(IMM == LEXEM_TYPE::DATA_TYPE_16) {
+                    offset += 2;
+                    return 0;
+                  }
                 }
               }
             }
@@ -528,6 +555,7 @@ int MOV_validator(const Expression& expression, size_t& offset) {
         }
       }
       else if(expression.at(1) == "WORD" && expression.at(2) == "PTR") {
+        offset = 0;
         offset += 7;
         if(!mem_validator(expression, 3, id)) {
           if(expression.at(id++) == ",") {
@@ -544,6 +572,7 @@ int MOV_validator(const Expression& expression, size_t& offset) {
         }
       }
       else if(expression.at(1) == "BYTE" && expression.at(2) == "PTR") {
+        offset = 0;
         offset += 6;
         if(!mem_validator(expression, 3, id)) {
           if(expression.at(id++) == ",") {
@@ -561,19 +590,22 @@ int MOV_validator(const Expression& expression, size_t& offset) {
       }
       // MOV reg, mem 
       else if(isAsmReg(expression.at(1))){
-        if(isReg_32(expression.at(1)) || isReg_16(expression.at(1))){
-          offset += 6;
+        offset = 0;
+        if(isReg_32(expression.at(1))){
+          offset += 2;
         }
-        else{
-          offset += 5;
+        else if(isReg_16(expression.at(1)) || isReg_16(expression.at(1))){
+          offset += 1;
         }
         if(expression.at(2) == ","){
           if(!mem_validator(expression, 3, id)){
+            offset += 4;
             return 0;
           }
           else if(expression.at(3) == "DWORD" && expression.at(4) == "PTR") {
             if(isReg_32(expression.at(1))) {
               if(!mem_validator(expression, 5, id)){
+                offset += 4;
                 return 0;
               }
             }
@@ -581,6 +613,7 @@ int MOV_validator(const Expression& expression, size_t& offset) {
           else if(expression.at(3) == "WORD" && expression.at(4) == "PTR") {
             if(getAsmLexemType(expression.at(1)) == LEXEM_TYPE::REGISTER_16) {
               if(!mem_validator(expression, 5, id)){
+                offset += 4;
                 return 0;
               }
             }
@@ -588,6 +621,7 @@ int MOV_validator(const Expression& expression, size_t& offset) {
           else if(expression.at(3) == "BYTE" && expression.at(4) == "PTR") {
             if(getAsmLexemType(expression.at(1)) == LEXEM_TYPE::REGISTER_8) {
               if(!mem_validator(expression, 5, id)){
+                offset += 4;
                 return 0;
               }
             }
@@ -668,17 +702,19 @@ int PUSH_validator(const Expression &expression, size_t& offset) {
   return -1;
 }
 
-int LABLE_validator(const Expression &expression, size_t& offset) {
+int Translator::LABLE_validator(const Expression &expression, size_t& offset) {
   offset = 0;
   if(getAsmDictType(expression.back()) == ASM_DICT::COL) {
     if(expression.size() == 2) {
-      if(!VAR_name_validator(expression.front())){
+      if(!add_Variable({expression.at(0), ASM_DICT::NEAR})) {
         return 0;
       }
     }
     else if(getAsmDictType(expression.at(2)) == ASM_DICT::SEMICOL) {
       if(!VAR_name_validator(expression.front())) {
+        if(!add_Variable({expression.at(0), ASM_DICT::NEAR})) {
         return 0;
+        }
       }
     }
   }
@@ -789,21 +825,35 @@ LEXEM_TYPE IMM_size(const Lexem& lexem) {
   if(isIMM(lexem)) {
     LEXEM_TYPE imm = getIMM_type(lexem);
     if(imm == LEXEM_TYPE::HEX_CONST){
-      tmp = stoi(lexem, nullptr, 2);
-    }
-    else if(imm == LEXEM_TYPE::BIN_CONST) {
       tmp = stoi(lexem, nullptr, 16);
     }
+    else if(imm == LEXEM_TYPE::BIN_CONST) {
+      tmp = stoi(lexem, nullptr, 2);
+    }
     else if(imm == LEXEM_TYPE::DEC_CONST) {
-      int tmp = stoi(lexem);
+      if(lexem.back() == 'D'){
+        tmp = stoi(string{lexem.begin(), lexem.end() - 1});
+      }
+      else {
+        tmp = stoi(lexem, nullptr, 10);
+      }
     }
     if(tmp > -128 && tmp < 127) {
       return LEXEM_TYPE::DATA_TYPE_8;
     }
-    if(tmp > -32'768  && tmp < -32'767) {
+    if(tmp > 0 && tmp < 255) {
+      return LEXEM_TYPE::DATA_TYPE_8;
+    }
+    if(tmp > -32'768  && tmp < 32'767) {
       return LEXEM_TYPE::DATA_TYPE_16;
     }
-    if(tmp > -2'147'483'648 && tmp < -2'147'483'647) {
+    if(tmp > 0 && tmp < 65,535) {
+      return LEXEM_TYPE::DATA_TYPE_16;
+    }
+    if(tmp > -2'147'483'648 && tmp < 2'147'483'647) {
+      return LEXEM_TYPE::DATA_TYPE_32;
+    }
+    if(tmp > 0 && tmp < 4'294'967'295) {
       return LEXEM_TYPE::DATA_TYPE_32;
     }
   } 

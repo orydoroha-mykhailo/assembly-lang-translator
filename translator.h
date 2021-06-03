@@ -36,18 +36,18 @@ private:
   friend class Segment;
   class Variable {
   public:
-    Variable(const std::string& name, const LEXEM_TYPE& var_type)
-     :var_name(name), size(var_type){}
+    Variable(const std::string& name, const ASM_DICT& var_type)
+     :var_name(name), attribute(var_type){}
     bool operator==(const Variable& rhs) const {
-     return var_name == rhs.var_name && size == rhs.GetType();}
+     return var_name == rhs.var_name && attribute == rhs.GetType();}
     bool operator<(const Variable& rhs) const {
      return var_name < rhs.var_name;}
     std::string GetName() const{return var_name;}
-    LEXEM_TYPE GetType() const{return size;}
+    ASM_DICT GetType() const{return attribute;}
 
   private:
     const std::string var_name;
-    const LEXEM_TYPE size;
+    const ASM_DICT attribute;
   };
   class Segment {
   public:
@@ -104,9 +104,10 @@ private:
 
 
   int JZ_validator(const Expression& expression, size_t& offset);
+  int LABLE_validator(const Expression &expression, size_t& offset);
   int PROC_validator(const Expression& expression, size_t& offset);
   int CALL_validator(const Expression& expression, size_t& offset);
-  int add_PROC(const Lexem& name);
+  int add_Variable(const Translator::Variable& var);
 
   int validate_expression(const Expression& expression, size_t& offset);
   void release_expression(const Expression& expression, const size_t& line_num, const size_t& offset) const;
