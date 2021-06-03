@@ -226,7 +226,7 @@ int Translator::validate_expression(const Expression& expression, size_t& offset
             }
           }
         }
-        offset = 0;
+        global_offset = 0;
         Segments.insert(expression.front());
         for(auto s: Segments) {
           if(s.GetName() == expression.at(0)) {
@@ -369,6 +369,7 @@ int Translator::PROC_validator(const Expression& expression, size_t& offset) {
 }
 
 int Translator::CALL_validator(const Expression& expression, size_t& offset) {
+  offset = 0;
   if(expression.front() == "CALL"){
     if(!VAR_name_validator(expression.at(1))) {
       for(auto s: Segments) {
@@ -404,6 +405,7 @@ int Translator::CALL_validator(const Expression& expression, size_t& offset) {
   return -1;
 }
 int VAR_validator(const Expression& expression, size_t& offset, LEXEM_TYPE& var_type) {
+  offset = 0;
   if(expression.at(1) == "DB") {
     if(!VAR_name_validator(expression.at(0))) {
       if(isIMM(expression.at(2))) {
@@ -449,6 +451,7 @@ int VAR_validator(const Expression& expression, size_t& offset, LEXEM_TYPE& var_
 }
 
 int IMUL_validator(const Expression& expression, size_t& offset) {
+  offset = 0;
   size_t id = 0;
   if(getAsmDictType(expression.at(id++)) == ASM_DICT::IMUL) {
     if(isAsmReg(expression.at(id++))){
@@ -498,6 +501,7 @@ int IMUL_validator(const Expression& expression, size_t& offset) {
 // seems like done!
 // returns 0 if mov expression is valid
 int MOV_validator(const Expression& expression, size_t& offset) {
+  offset = 0;
   if(expression.size() > 1){
     if(expression.at(0) == "MOV"){
       // MOV mem, imm
@@ -591,6 +595,7 @@ int MOV_validator(const Expression& expression, size_t& offset) {
 }
 
 int POP_validator(const Expression &expression, size_t& offset){
+  offset = 0;
   if(getAsmDictType(expression.at(0)) == ASM_DICT::POP){
     if(isReg_32(expression.at(1))) {
       offset += 2;
@@ -605,6 +610,7 @@ int POP_validator(const Expression &expression, size_t& offset){
 }
 
 int OR_validator(const Expression &expression, size_t& offset) {
+  offset = 0;
   if(getAsmDictType(expression.at(0)) == ASM_DICT::OR) {
     if(getAsmDictType(expression.at(2)) == ASM_DICT::COM) {
       if(isAsmReg(expression.at(1)) && isAsmReg(expression.at(3))) {
@@ -630,6 +636,7 @@ int OR_validator(const Expression &expression, size_t& offset) {
 }
 
 int PUSH_validator(const Expression &expression, size_t& offset) {
+  offset = 0;
   size_t id = 0;
   if(getAsmDictType(expression.at(id++)) == ASM_DICT::PUSH) {
     /* Let it be error if no keyword before MEM */
@@ -657,6 +664,7 @@ int PUSH_validator(const Expression &expression, size_t& offset) {
 }
 
 int LABLE_validator(const Expression &expression, size_t& offset) {
+  offset = 0;
   if(getAsmDictType(expression.back()) == ASM_DICT::COL) {
     if(expression.size() == 2) {
       if(!VAR_name_validator(expression.front())){
