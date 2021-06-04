@@ -316,6 +316,7 @@ void Translator::print_Symbol_Table() const {
   << setw(20) << "Type"
   << setw(10) << "Value"
   << endl;
+  stringstream ss;
   for(auto s : Segments) {
     for(const auto& v: s.vars) {
       ASM_DICT t = v.GetType();
@@ -335,10 +336,14 @@ void Translator::print_Symbol_Table() const {
       else if(t == ASM_DICT::DB) {
         type = "BYTE";
       }
+
+      ss << std::hex << v.GetAddr();
+      string offset_ = ToUpper(ss.str());
+      ss.str("");
       listing_file << std::left << setw(27) << v.GetName()
       << setfill(' ') 
       << setw(9) << type
-      << s.GetName()<< ':' << std::right << setfill('0') << setw(4) << v.GetAddr()
+      << s.GetName()<< ':' << std::right << setfill('0') << setw(4) << offset_
       << setfill(' ') << endl;
 
     }
